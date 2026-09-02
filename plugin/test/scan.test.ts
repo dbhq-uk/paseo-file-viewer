@@ -59,19 +59,19 @@ describe("scanWorkspace", () => {
 
 describe("format assertions", () => {
   it("accepts a real OOXML file", async () => {
-    await assertOoxml(join(fixtures, "rich.docx"));
+    await assertOoxml(join(fixtures, "contract.docx"));
   });
 
   it("names legacy Office format rather than failing obscurely", async () => {
-    await assert.rejects(() => assertOoxml(join(fixtures, "legacy.docx")), /Legacy Office format/);
+    await assert.rejects(() => assertOoxml(join(fixtures, "legacy-format.docx")), /Legacy Office format/);
   });
 
   it("rejects a file that is not an Office document at all", async () => {
-    await assert.rejects(() => assertOoxml(join(fixtures, "bogus.xlsx")), /not a valid Office document/);
+    await assert.rejects(() => assertOoxml(join(fixtures, "not-really.xlsx")), /not a valid Office document/);
   });
 
   it("accepts a real PDF and rejects a non-PDF", async () => {
-    await assertPdf(join(fixtures, "sample.pdf"));
-    await assert.rejects(() => assertPdf(join(fixtures, "rich.docx")), /not a valid PDF/);
+    await assertPdf(join(fixtures, "statement.pdf"));
+    await assert.rejects(() => assertPdf(join(fixtures, "contract.docx")), /not a valid PDF/);
   });
 });

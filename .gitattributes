@@ -1,0 +1,7 @@
+# Test fixtures are binary; never let Git rewrite line endings in them.
+plugin/test/fixtures/** binary
+*.docx binary
+*.xlsx binary
+*.pdf  binary
+*.png  binary
+*.avif binary

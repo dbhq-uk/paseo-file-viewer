@@ -6,6 +6,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Paseo](https://img.shields.io/badge/Paseo-Plugin-6f4ef2)](https://paseo.sh)
+[![CI](https://github.com/dbhq-uk/paseo-file-viewer/actions/workflows/ci.yml/badge.svg)](https://github.com/dbhq-uk/paseo-file-viewer/actions/workflows/ci.yml)
 [![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS-lightgrey)]()
 
 A free, open-source tool by [DBHQ](https://dbhq.uk)
@@ -77,13 +78,22 @@ This matters because **Paseo plugins are trusted, unsandboxed code**. The backen
 cd plugin
 npm install
 npm run typecheck
-node test/make-fixtures.mjs   # generates fixtures; no real document is committed
 npm test
 paseo plugin reload file-viewer
 paseo plugin logs file-viewer
 ```
 
-`server/` is plain Node with no Paseo coupling, so it tests directly. Fixtures are generated rather than checked in.
+`server/` is plain Node with no Paseo coupling, so it tests directly - 75 tests covering the path guard, format detection, the block mapping, cell rendering, the rasteriser and cache, and the RPC schemas.
+
+**Fixtures are committed**, so the suite runs anywhere with only `poppler-utils`, `imagemagick` and `librsvg2-bin` installed. They are invented documents - a fictional consulting agreement, invoice workbook and account statement, plus deliberately malformed files for the refusal paths. No real document appears in this repository.
+
+Regenerate them only when one needs to change (this additionally needs `pandoc` and `qpdf`):
+
+```bash
+node test/make-fixtures.mjs
+```
+
+CI runs the suite on Node 20, 22 and 24, gates on `npm audit --audit-level=moderate`, and separately checks that the fixture generator still works.
 
 ## Licence
 

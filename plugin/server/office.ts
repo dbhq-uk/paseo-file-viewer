@@ -145,19 +145,30 @@ export async function readSheetList(file: string): Promise<SheetMeta[]> {
   }));
 }
 
-function cellText(value: ExcelJS.CellValue): string {
+/**
+ * Renders a cell as the text a reader should see.
+ *
+ * Formulas are the awkward case. A workbook stores the expression and,
+ * usually, a cached result - but not always, and exceljs does not preserve
+ * one it did not read. With no cached value the honest thing is to show the
+ * expression, because rendering an empty string makes a populated column look
+ * blank and gives the reader no clue why.
+ */
+export function cellText(value: ExcelJS.CellValue): string {
   if (value === null || value === undefined) return "";
   if (value instanceof Date) return value.toISOString().slice(0, 10);
-  if (typeof value === "object") {
-    const v = value as any;
-    if (typeof v.text === "string") return v.text;
-    if (v.richText) return v.richText.map((r: any) => r.text).join("");
-    if (v.result !== undefined) return String(v.result);
-    if (v.hyperlink) return String(v.text ?? v.hyperlink);
-    if (v.error) return String(v.error);
-    return "";
+  if (typeof value !== "object") return String(value);
+
+  const v = value as any;
+  if (v.error) return String(v.error);
+  if (v.richText) return v.richText.map((r: any) => r.text ?? "").join("");
+  if (v.formula !== undefined || v.sharedFormula !== undefined) {
+    if (v.result !== undefined && v.result !== null) return cellText(v.result);
+    return `=${v.formula ?? v.sharedFormula}`;
   }
-  return String(value);
+  if (v.hyperlink) return String(v.text ?? v.hyperlink);
+  if (typeof v.text === "string") return v.text;
+  return "";
 }
 
 export interface RowWindow {

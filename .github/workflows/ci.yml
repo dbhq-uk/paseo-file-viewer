@@ -1,0 +1,105 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: plugin
+
+jobs:
+  test:
+    name: Test on Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["20", "22", "24"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # The renderer shells out to these. Fixtures are committed, so pandoc and
+      # qpdf are not needed here - only what the plugin itself calls at runtime.
+      - name: Install render tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            poppler-utils imagemagick librsvg2-bin
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: plugin/package-lock.json
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: plugin/package-lock.json
+      - run: npm ci
+      # SheetJS is deliberately absent because of prototype pollution and ReDoS
+      # in its parser. This gate is what stops it, or anything like it, arriving
+      # through a transitive dependency later.
+      - name: Fail on moderate or worse
+        run: npm audit --audit-level=moderate
+
+  fixtures:
+    name: Fixture generator still runs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install authoring tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            pandoc qpdf imagemagick poppler-utils librsvg2-bin
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: plugin/package-lock.json
+
+      - run: npm ci
+
+      # Fixtures are committed, so this does not gate the test job. It catches
+      # the generator rotting unnoticed, which would only be discovered the next
+      # time a fixture needed changing.
+      - name: Regenerate and check the expected set appears
+        run: |
+          node test/make-fixtures.mjs
+          missing=0
+          for f in contract.docx scanned-report.docx invoices.xlsx statement.pdf \
+                   locked.pdf photo.png diagram.svg banner.avif \
+                   legacy-format.docx not-really.xlsx truncated.pdf; do
+            if [ ! -s "test/fixtures/$f" ]; then
+              echo "::error::generator did not produce $f"
+              missing=1
+            fi
+          done
+          exit $missing
+
+      - name: Tests still pass against freshly generated fixtures
+        run: npm test

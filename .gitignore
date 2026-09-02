@@ -1,5 +1,4 @@
 node_modules/
 dist/
 *.local.ts
-plugin/test/fixtures/
 .DS_Store

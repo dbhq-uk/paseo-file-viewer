@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="200" viewBox="0 0 320 200">
+  <rect width="320" height="200" fill="#f4f6f8"/>
+  <rect x="30" y="40" width="110" height="60" rx="8" fill="#3b6ea5"/>
+  <rect x="180" y="40" width="110" height="60" rx="8" fill="#6a8f3f"/>
+  <line x1="140" y1="70" x2="180" y2="70" stroke="#333333" stroke-width="3"/>
+  <text x="45" y="130" font-family="sans-serif" font-size="14" fill="#222222">Source</text>
+  <text x="195" y="130" font-family="sans-serif" font-size="14" fill="#222222">Target</text>
+</svg>
