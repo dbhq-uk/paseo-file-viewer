@@ -1,0 +1,29 @@
+{
+  "name": "paseo-file-viewer",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0",
+    "mammoth": "^1.12.2",
+    "node-html-parser": "^7.0.1"
+  },
+  "devDependencies": {
+    "@getpaseo/plugin": "0.7.2",
+    "@tanstack/react-query": "^5.90.11",
+    "@types/node": "^22.10.2",
+    "@types/react": "~19.2.0",
+    "react": "19.1.0",
+    "react-native": "0.81.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.9.3",
+    "zod": "^4.4.3"
+  },
+  "overrides": {
+    "uuid": "^11.0.0"
+  }
+}
