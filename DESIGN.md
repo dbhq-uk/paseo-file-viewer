@@ -51,7 +51,11 @@ The spreadsheet case decides it. 169 pages of arbitrary page breaks, each needin
 
 LibreOffice is not used at all. It was in an earlier draft of this design and the benchmarks removed it, along with the timeout, profile-directory and serialisation handling it would have needed.
 
-**What this costs.** Exact layout is lost for Office documents: fonts, positioning, headers and footers, page numbers, where a signature block sits. For a contract, a page image is more faithful to what was actually signed. Legacy `.doc` is also unsupported, since `mammoth` reads only `.docx`. Both are accepted; see Non-goals.
+**What this costs.** Exact layout is lost for Office documents: fonts, positioning, headers and footers, page numbers, where a signature block sits.
+
+That sounds worse than it is, and the corpus is the reason. All ten `.docx` files are working documents - a CV and personal statement, legal complaint drafts and evidence summaries, two years of P11D workings. **Not one signed contract is a `.docx`**; every executed agreement in the corpus is already a PDF, and PDFs keep their exact layout because they take the rasterise path. So the loss applies only to documents you would want to reflow on a phone anyway.
+
+Legacy `.doc` is unsupported, since `mammoth` reads only `.docx`. The corpus contains none. See Non-goals.
 
 ## Components
 
@@ -98,10 +102,21 @@ Block  = { type: 'heading', level, runs }
        | { type: 'paragraph', runs }
        | { type: 'list', ordered, items: runs[] }
        | { type: 'table', rows: runs[][] }
-Run    = { text, bold?, italic? }
+       | { type: 'image', dataUri, alt? }
+Run    = { text, bold?, italic?, link? }
 ```
 
-Four block types and three run properties cover every tag `mammoth` produced across the real corpus. Anything it emits outside that set degrades to a plain paragraph rather than failing.
+This shape was derived by running `mammoth` over all ten `.docx` files in the corpus, not one. The union is fifteen tags: `p`, `strong`, `em`, `a`, `br`, `h1`, `h2`, `h3`, `ul`, `ol`, `li`, `table`, `tr`, `td`, `img`.
+
+Three of those are easy to miss and each would cause a visible defect:
+
+- **`img`** - **the P11D calculations document is five pasted screenshots and no text at all.** Strip images and it renders as a blank page. `mammoth` inlines them as base64 PNG data URIs, which `<Image source={{uri}}>` takes directly, so this is a block type rather than any real work
+- **`a`** - 140 links across the corpus, mostly in the CVs. A run without `link` silently drops them
+- **`br`** - a line break inside a paragraph, which becomes a newline in the run text rather than a new block, so address lines and sign-offs keep their shape
+
+Headings collapse `h1`-`h3` into `level`, and `ul`/`ol` into `ordered`. Anything outside this set degrades to a plain paragraph rather than failing.
+
+The image-heavy documents are the payload outlier: the P11D file is 243KB of mostly base64. That is acceptable over local IPC at five images, so images ship inline with the block tree rather than being fetched separately.
 
 ## Zoom without a zoom gesture
 
@@ -151,13 +166,13 @@ Parsed Office output is not cached to disk. At 107ms and 411ms it is cheaper to 
 
 `server/` is plain Node with no Paseo coupling, so it tests directly against fixture files - one per kind, plus an encrypted PDF, a corrupt file, a legacy `.doc` and a symlink pointing outside the workspace.
 
-The path guard, the cache key, the block mapping and the row windowing get explicit tests. The client components are thin enough to verify by eye across a wide desktop window, a compact mobile client and both themes.
+The path guard, the cache key, the block mapping and the row windowing get explicit tests. The block mapping is tested against all fifteen tags in the corpus union, with a specific case asserting that an image-only document produces image blocks rather than an empty page. The client components are thin enough to verify by eye across a wide desktop window, a compact mobile client and both themes.
 
 ## Non-goals
 
 - **Text, code and markdown** - Paseo's files panel already renders them
-- **Exact page layout for Office documents** - a deliberate trade for speed and mobile reflow, see above
-- **Legacy `.doc`, `.xls`, `.ppt`** - the corpus has none, and supporting them means reintroducing LibreOffice
+- **Exact page layout for Office documents** - a deliberate trade for speed and mobile reflow. No signed contract in the corpus is a `.docx`, so nothing that needs layout fidelity takes this path
+- **Legacy `.doc`, `.xls`, `.ppt`** - the corpus has none, and supporting them means reintroducing LibreOffice. Detected by magic bytes and reported as unsupported, so one arriving later gives a clear message rather than a crash
 - **PowerPoint** - no `.pptx` in the corpus
 - **Video and audio** - would need ffmpeg, which is not installed, and there are no media files in the corpus
 - **Editing, annotation, OCR, search within a document** - read-only viewer
