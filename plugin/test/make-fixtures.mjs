@@ -9,10 +9,36 @@
  * qpdf or ImageMagick. Run this only when a fixture needs to change.
  */
 import { execFileSync } from "node:child_process";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import ExcelJS from "exceljs";
+
+// EVERY -annotate BELOW NAMES A FONT FILE, and that is not decoration.
+// ImageMagick with no -font asks its own type registry for a default, and on a
+// Debian runner installed with --no-install-recommends that registry is empty:
+// it fails with "unable to read font `(null)'" rather than falling back. That
+// broke this generator on 2 Sep 2026 and nothing else, so CI stayed red for two
+// weeks with every test passing. Naming a file skips the registry entirely.
+//
+// FIXTURE_FONT overrides it; otherwise the first path that exists wins, so this
+// runs on a runner, a Mac and a developer box without a conditional.
+const FONT =
+  process.env.FIXTURE_FONT ??
+  [
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    "/usr/share/fonts/TTF/DejaVuSans.ttf",
+    "/usr/share/fonts/dejavu/DejaVuSans.ttf",
+    "/Library/Fonts/Arial.ttf",
+    "/System/Library/Fonts/Supplemental/Arial.ttf",
+  ].find(existsSync);
+
+if (!FONT) {
+  throw new Error(
+    "no font found for ImageMagick. Install fonts-dejavu-core, or set FIXTURE_FONT " +
+      "to a .ttf path. Without it every -annotate fails and the fixtures are blank.",
+  );
+}
 
 const dir = join(dirname(fileURLToPath(import.meta.url)), "fixtures");
 rmSync(dir, { recursive: true, force: true });
@@ -73,6 +99,7 @@ execFileSync("pandoc", [temp("contract.md"), "-o", at("contract.docx")]);
 // ---------------------------------------------------------------------------
 execFileSync("convert", [
   "-size", "640x420", "xc:white",
+  "-font", FONT,
   "-fill", "#1f3a5f", "-draw", "rectangle 0,0 640,60",
   "-pointsize", "22", "-fill", "white", "-annotate", "+20+38", "Quarterly Summary",
   "-pointsize", "16", "-fill", "#222222", "-annotate", "+20+120", "Revenue    120,000",
@@ -118,6 +145,7 @@ const pageFiles = pages.map((lines, index) => {
   const file = temp(`page${index}.png`);
   const args = [
     "-size", "1240x1754", "xc:white",
+    "-font", FONT,
     "-pointsize", "44", "-fill", "#111111", "-annotate", "+90+160", lines[0],
     "-pointsize", "28",
   ];
