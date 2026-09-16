@@ -73,13 +73,15 @@ jobs:
       - name: Install authoring tools
         run: |
           sudo apt-get update
-          # fonts-dejavu-core is not optional. --no-install-recommends strips
-          # ImageMagick's font packages, and every -annotate in
-          # plugin/test/make-fixtures.mjs then fails with
-          # "unable to read font `(null)'". That has been breaking this job
-          # since 2 Sep 2026 while every other job stayed green.
+          # THE LAST TWO ARE NOT OPTIONAL, and --no-install-recommends is why.
+          # It strips ImageMagick's fonts, so every -annotate fails with
+          # "unable to read font `(null)'"; and it strips the extra delegates,
+          # so writing banner.avif fails with "no encode delegate for AVIF".
+          # Both broke this one job on 2 Sep 2026 while every other job stayed
+          # green, which is how CI sat red for a fortnight.
           sudo apt-get install -y --no-install-recommends \
-            pandoc qpdf imagemagick poppler-utils librsvg2-bin fonts-dejavu-core
+            pandoc qpdf imagemagick poppler-utils librsvg2-bin fonts-dejavu-core \
+            libmagickcore-6.q16-6-extra
 
       - uses: actions/setup-node@v4
         with:
