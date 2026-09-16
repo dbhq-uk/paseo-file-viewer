@@ -73,8 +73,13 @@ jobs:
       - name: Install authoring tools
         run: |
           sudo apt-get update
+          # fonts-dejavu-core is not optional. --no-install-recommends strips
+          # ImageMagick's font packages, and every -annotate in
+          # plugin/test/make-fixtures.mjs then fails with
+          # "unable to read font `(null)'". That has been breaking this job
+          # since 2 Sep 2026 while every other job stayed green.
           sudo apt-get install -y --no-install-recommends \
-            pandoc qpdf imagemagick poppler-utils librsvg2-bin
+            pandoc qpdf imagemagick poppler-utils librsvg2-bin fonts-dejavu-core
 
       - uses: actions/setup-node@v4
         with:
