@@ -163,7 +163,13 @@ execFileSync("qpdf", ["--encrypt", "secret", "secret", "256", "--", at("statemen
 // Images: native, vector, and one needing conversion.
 // ---------------------------------------------------------------------------
 execFileSync("convert", ["-size", "400x300", "gradient:#3b6ea5-#0d1b2a", at("photo.png")]);
-execFileSync("convert", ["-size", "300x200", "gradient:#a53b3b-#2a0d0d", at("banner.avif")]);
+// AVIF IS WRITTEN BY avifenc, NOT BY convert. Ubuntu ships ImageMagick 6 with
+// no AVIF *encoder* - it will read one and refuses to write one, with
+// "no encode delegate for this image format `AVIF'". Adding the extra
+// delegates package does not change that. avifenc, from libavif-bin, is the
+// reference encoder and does one job.
+execFileSync("convert", ["-size", "300x200", "gradient:#a53b3b-#2a0d0d", temp("banner.png")]);
+execFileSync("avifenc", ["--speed", "10", temp("banner.png"), at("banner.avif")]);
 writeFileSync(
   at("diagram.svg"),
   `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="200" viewBox="0 0 320 200">
